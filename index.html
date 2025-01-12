@@ -17,39 +17,82 @@
             overflow: hidden;
         }
 
-        #ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 10;
-            /* Ensure it overlays the canvas */
-        }
-
-        button,
-        select {
-            margin: 5px;
-            padding: 10px;
-            font-size: 16px;
-        }
-
         /* Make the canvas fill the page */
         #sceneCanvas {
             display: block;
             width: 100vw;
             height: 100vh;
         }
+
+        /****************************************
+     *             UI Styling               *
+     ****************************************/
+        #ui {
+            position: fixed;
+            /* Always on top */
+            bottom: 10px;
+            /* Place near the bottom */
+            left: 50%;
+            /* Center horizontally */
+            transform: translateX(-50%);
+            /* Center the UI container */
+            z-index: 10;
+            /* Above the canvas */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            /* Space between elements */
+        }
+
+        button,
+        select {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* Basic drop-up style for the select box */
+        select {
+            position: relative;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            appearance: none;
+            /* Remove default arrow in some browsers */
+
+            text-align: center;
+            /* Aligns the text for some browsers */
+            text-align-last: center;
+            /* Aligns the selected item in modern browsers */
+        }
+
+        select option {
+            text-align: center;
+            /* Fallback for older browsers */
+        }
+
+        /* Show an up arrow to mimic "drop up" */
+        select::after {
+            content: '▲';
+            font-size: 10px;
+            position: absolute;
+            right: 10px;
+            top: calc(50% - 5px);
+        }
     </style>
 </head>
 
 <body>
-    <!-- UI Controls -->
+    <!-- UI Controls: Now at the bottom, with drop-up in the middle -->
     <div id="ui">
+        <!-- Replaced "Previous" with "Back" -->
+        <button onclick="prevModel()">Back</button>
         <select id="category" onchange="switchCategory()">
             <option value="starters">Starters</option>
             <option value="main">Main</option>
             <option value="desserts">Desserts</option>
         </select>
-        <button onclick="prevModel()">Previous</button>
         <button onclick="nextModel()">Next</button>
     </div>
 
@@ -66,14 +109,8 @@
 
         // Create scene
         const scene = new THREE.Scene();
-        // scene.background = new THREE.Color(0xf0ff0f);
 
-        // Add an image as the background
-        // const textureLoader = new THREE.TextureLoader();
-        // textureLoader.load('assets/menus/portrait_menu.jpg', (texture) => {
-        //     scene.background = texture; // Set the loaded image as the background
-        // });
-
+        // Load a panoramic background (example)
         const textureLoader = new THREE.TextureLoader();
         textureLoader.load('assets/panoramas/uzbek1.jpg', (texture) => {
             texture.minFilter = THREE.LinearFilter; // Improve rendering quality
@@ -87,26 +124,6 @@
             renderer.setClearColor(0xffffff, 1); // White color
         });
 
-        // const textureLoader = new THREE.TextureLoader();
-        // textureLoader.load('assets/menus/portrait_menu.jpg', (texture) => {
-        //     const imageAspect = texture.image.width / texture.image.height;
-        //     const canvasAspect = window.innerWidth / window.innerHeight;
-
-        //     // Determine the scaling based on the aspect ratios
-        //     const scaleX = canvasAspect > imageAspect ? imageAspect / canvasAspect : 1;
-        //     const scaleY = canvasAspect > imageAspect ? 1 : canvasAspect / imageAspect;
-
-        //     // Create a plane geometry for the image
-        //     const geometry = new THREE.PlaneGeometry(2 * scaleX, 2 * scaleY);
-        //     const material = new THREE.MeshBasicMaterial({ map: texture });
-        //     const plane = new THREE.Mesh(geometry, material);
-
-        //     // Position the plane in front of the camera
-        //     plane.position.set(0, 0, -1); // Slightly behind the origin
-        //     scene.add(plane);
-        // });
-
-
         // Create camera
         const camera = new THREE.PerspectiveCamera(
             75,
@@ -119,12 +136,14 @@
 
         // Orbit Controls (rotate + zoom only)
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;       // Smooth orbiting
+        controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.enableZoom = true;          // Allow zoom
+        controls.enableZoom = true;
         controls.zoomSpeed = 0.5;
-        controls.enablePan = false;          // Disable panning
-        // We'll set the controls.target to (0,0,0) after we load each model
+        controls.enablePan = false;
+
+        controls.minPolarAngle = 0.1;        // adjust up or down as desired
+        controls.maxPolarAngle = (Math.PI / 2) - 0.2;
 
         /****************************************
          *         2. Lighting (Optional)       *
@@ -189,20 +208,18 @@
                     // OPTIONAL: Scale the model so it's visible
                     currentModel.scale.set(5, 5, 5);
 
-                    // 1) Compute bounding box to find center
+                    // Compute bounding box to find center
                     const box = new THREE.Box3().setFromObject(currentModel);
                     const center = box.getCenter(new THREE.Vector3());
 
-                    // 2) Shift the model so its center is at (0,0,0)
-                    //    This means it will orbit around its true center
+                    // Shift the model so its center is at (0,0,0)
                     currentModel.position.x += (currentModel.position.x - center.x);
                     currentModel.position.y += (currentModel.position.y - center.y);
                     currentModel.position.z += (currentModel.position.z - center.z);
 
-                    // 3) Update OrbitControls target to the new center (0,0,0)
+                    // Update OrbitControls target to the new center
                     controls.target.set(0, 0, 0);
                     controls.update();
-
                 },
                 undefined,
                 (error) => {
@@ -223,15 +240,13 @@
         }
 
         function nextModel() {
-            currentIndex =
-                (currentIndex + 1) % assets[currentCategory].length;
+            currentIndex = (currentIndex + 1) % assets[currentCategory].length;
             loadModel();
         }
 
         function prevModel() {
-            currentIndex =
-                (currentIndex - 1 + assets[currentCategory].length) %
-                assets[currentCategory].length;
+            // Renamed button text to "Back", but function can remain 'prevModel'
+            currentIndex = (currentIndex - 1 + assets[currentCategory].length) % assets[currentCategory].length;
             loadModel();
         }
 
