@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Food Viewer (Three.js Centered)</title>
+
+    <!-- Three.js and Extras -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.144.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.144.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.144.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            /* Ensure it overlays the canvas */
+        }
+
+        button,
+        select {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        /* Make the canvas fill the page */
+        #sceneCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- UI Controls -->
+    <div id="ui">
+        <select id="category" onchange="switchCategory()">
+            <option value="starters">Starters</option>
+            <option value="main">Main</option>
+            <option value="desserts">Desserts</option>
+        </select>
+        <button onclick="prevModel()">Previous</button>
+        <button onclick="nextModel()">Next</button>
+    </div>
+
+    <!-- Canvas for Three.js -->
+    <canvas id="sceneCanvas"></canvas>
+
+    <script>
+        /****************************************
+         *     1. Setup Scene, Camera, Renderer *
+         ****************************************/
+        const canvas = document.getElementById("sceneCanvas");
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // Create scene
+        const scene = new THREE.Scene();
+        // scene.background = new THREE.Color(0xf0ff0f);
+
+        // Add an image as the background
+        // const textureLoader = new THREE.TextureLoader();
+        // textureLoader.load('assets/menus/portrait_menu.jpg', (texture) => {
+        //     scene.background = texture; // Set the loaded image as the background
+        // });
+
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('assets/panoramas/uzbek1.jpg', (texture) => {
+            texture.minFilter = THREE.LinearFilter; // Improve rendering quality
+            texture.magFilter = THREE.LinearFilter;
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+
+            // Set the background to the loaded texture
+            scene.background = texture;
+
+            // Optionally set a fill color for whitespace
+            renderer.setClearColor(0xffffff, 1); // White color
+        });
+
+        // const textureLoader = new THREE.TextureLoader();
+        // textureLoader.load('assets/menus/portrait_menu.jpg', (texture) => {
+        //     const imageAspect = texture.image.width / texture.image.height;
+        //     const canvasAspect = window.innerWidth / window.innerHeight;
+
+        //     // Determine the scaling based on the aspect ratios
+        //     const scaleX = canvasAspect > imageAspect ? imageAspect / canvasAspect : 1;
+        //     const scaleY = canvasAspect > imageAspect ? 1 : canvasAspect / imageAspect;
+
+        //     // Create a plane geometry for the image
+        //     const geometry = new THREE.PlaneGeometry(2 * scaleX, 2 * scaleY);
+        //     const material = new THREE.MeshBasicMaterial({ map: texture });
+        //     const plane = new THREE.Mesh(geometry, material);
+
+        //     // Position the plane in front of the camera
+        //     plane.position.set(0, 0, -1); // Slightly behind the origin
+        //     scene.add(plane);
+        // });
+
+
+        // Create camera
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        // Position the camera somewhat away from the origin
+        camera.position.set(0, 1.6, 3);
+
+        // Orbit Controls (rotate + zoom only)
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;       // Smooth orbiting
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = true;          // Allow zoom
+        controls.zoomSpeed = 0.5;
+        controls.enablePan = false;          // Disable panning
+        // We'll set the controls.target to (0,0,0) after we load each model
+
+        /****************************************
+         *         2. Lighting (Optional)       *
+         ****************************************/
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+        hemiLight.position.set(0, 20, 0);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        /****************************************
+         * 3. GLTF Loader and Model Management  *
+         ****************************************/
+        const loader = new THREE.GLTFLoader();
+
+        // Data for assets in each category
+        const assets = {
+            starters: [
+                "assets/starters/plant.glb",
+                "assets/starters/random.glb"
+            ],
+            main: [
+                "assets/mains/noodles.glb",
+                "assets/mains/mandu.glb",
+                "assets/mains/beef_rice.glb"
+            ],
+            desserts: [
+                "assets/deserts/milk.glb",
+                "assets/deserts/Muffin.glb"
+            ]
+        };
+
+        let currentCategory = "starters";
+        let currentIndex = 0;
+        let currentModel = null;
+
+        function loadModel() {
+            const modelPath = assets[currentCategory][currentIndex];
+
+            // Remove previous model if it exists
+            if (currentModel) {
+                scene.remove(currentModel);
+                currentModel.traverse((child) => {
+                    if (child.isMesh) {
+                        child.geometry.dispose();
+                        if (child.material.map) child.material.map.dispose();
+                        child.material.dispose();
+                    }
+                });
+                currentModel = null;
+            }
+
+            // Load the new model
+            loader.load(
+                modelPath,
+                (gltf) => {
+                    currentModel = gltf.scene;
+                    scene.add(currentModel);
+
+                    // OPTIONAL: Scale the model so it's visible
+                    currentModel.scale.set(5, 5, 5);
+
+                    // 1) Compute bounding box to find center
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const center = box.getCenter(new THREE.Vector3());
+
+                    // 2) Shift the model so its center is at (0,0,0)
+                    //    This means it will orbit around its true center
+                    currentModel.position.x += (currentModel.position.x - center.x);
+                    currentModel.position.y += (currentModel.position.y - center.y);
+                    currentModel.position.z += (currentModel.position.z - center.z);
+
+                    // 3) Update OrbitControls target to the new center (0,0,0)
+                    controls.target.set(0, 0, 0);
+                    controls.update();
+
+                },
+                undefined,
+                (error) => {
+                    console.error("Error loading model:", error);
+                }
+            );
+        }
+
+        /****************************************
+         * 4. UI Functions for Changing Models  *
+         ****************************************/
+        const categoryDropdown = document.getElementById("category");
+
+        function switchCategory() {
+            currentCategory = categoryDropdown.value;
+            currentIndex = 0;
+            loadModel();
+        }
+
+        function nextModel() {
+            currentIndex =
+                (currentIndex + 1) % assets[currentCategory].length;
+            loadModel();
+        }
+
+        function prevModel() {
+            currentIndex =
+                (currentIndex - 1 + assets[currentCategory].length) %
+                assets[currentCategory].length;
+            loadModel();
+        }
+
+        // Initial load
+        loadModel();
+
+        /****************************************
+         *       5. Handle Window Resize        *
+         ****************************************/
+        window.addEventListener("resize", onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        /****************************************
+         *          6. Render Loop              *
+         ****************************************/
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+
+</html>
