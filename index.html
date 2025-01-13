@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Food Viewer - Approach 2</title>
+    <title>3D Food Viewer - Approach 2 with Table</title>
 
     <!-- Three.js and Extras -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.144.0/build/three.min.js"></script>
@@ -106,7 +106,8 @@
         controls.zoomSpeed = 0.5;
         controls.enablePan = false;
         controls.minPolarAngle = 0.1;
-        controls.maxPolarAngle = (Math.PI / 2) - 0.2;
+        // controls.maxPolarAngle = (Math.PI / 2) - 0.2;
+        controls.maxPolarAngle = (Math.PI / 2) + 0.2;
 
         /****************************************
          *         2. Lighting (Optional)       *
@@ -144,10 +145,46 @@
         let currentCategory = "starters";
         let currentIndex = 0;
 
-        // Track all loaded models
+        // Track all loaded "food" models
         let loadedModels = [];
 
-        // Helper to remove and dispose of all loaded models
+        // We'll track load requests with this counter
+        let loadCounter = 0;
+
+        // Table model reference
+        let tableModel = null;
+
+        /**
+         * Loads the table once, so it remains in the scene.
+         * (We do NOT remove it in removeAllModels().)
+         */
+        function loadTableModel() {
+            const tablePath = "assets/table.glb"; // Path to your table model
+
+            loader.load(
+                tablePath,
+                (gltf) => {
+                    tableModel = gltf.scene;
+                    scene.add(tableModel);
+
+                    // Scale the table uniformly to 0.1 for all axes
+                    tableModel.scale.set(0.05, 0.025, 0.05);
+
+                    // Position the table so its top is at y = 0
+                    tableModel.position.set(0, -1.87125, 0); // Adjust y as needed based on the scaled model
+                },
+                undefined,
+                (error) => {
+                    console.error("Error loading table model:", error);
+                }
+            );
+        }
+
+
+        /**
+         * Removes and disposes of any currently loaded "food" models,
+         * but NOT the table.
+         */
         function removeAllModels() {
             loadedModels.forEach((model) => {
                 scene.remove(model);
@@ -162,16 +199,16 @@
             loadedModels = [];
         }
 
-        // We'll track load requests with this counter
-        let loadCounter = 0;
-
+        /**
+         * Loads the current "food" model for the selected category & index.
+         */
         function loadModel() {
             const modelPath = assets[currentCategory][currentIndex];
 
             // This load's unique ID
             const thisLoadID = ++loadCounter;
 
-            // 1. Remove any previously loaded models
+            // 1. Remove any previously loaded food models
             removeAllModels();
 
             // 2. Load the new model
@@ -188,13 +225,27 @@
                     scene.add(model);
                     loadedModels.push(model);
 
-                    // OPTIONAL: Scale the model so it's visible
+                    // OPTIONAL: Scale the model
                     model.scale.set(5, 5, 5);
 
-                    // Center the model at (0,0,0)
+                    // Center the food at (0, ??, 0)
+                    // Then lift it slightly above the table if needed
                     const box = new THREE.Box3().setFromObject(model);
                     const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+
+                    // Reposition so center is at y=0 (just as a base)
+                    // Then we might raise it to ensure the model sits on the table
                     model.position.sub(center);
+
+                    // If the model's lowest point is below 0, you can lift it up:
+                    // For instance, to set the bounding box's "min.y" at +0.01 above the table.
+                    // By default, the bounding box extends equally around the center,
+                    // so half of `size.y` is below the center. We'll push it up that half:
+                    model.position.y += size.y / 2;
+
+                    // Optionally add a small offset to ensure no collision:
+                    model.position.y += 0.02;
 
                     // Update OrbitControls target
                     controls.target.set(0, 0, 0);
@@ -229,18 +280,21 @@
         }
 
         function prevModel() {
-            currentIndex =
-                (currentIndex - 1 + assets[currentCategory].length) %
+            currentIndex = (currentIndex - 1 + assets[currentCategory].length) %
                 assets[currentCategory].length;
             loadModel();
         }
 
-        // Initial load
+        /****************************************
+         *     5. Initial Setup and Rendering   *
+         ****************************************/
+        // 1) Load the table (persists through everything)
+        loadTableModel();
+
+        // 2) Load initial food model
         loadModel();
 
-        /****************************************
-         *       5. Handle Window Resize        *
-         ****************************************/
+        // Handle window resize
         window.addEventListener("resize", onWindowResize, false);
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -248,9 +302,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        /****************************************
-         *          6. Render Loop              *
-         ****************************************/
+        // Render loop
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
