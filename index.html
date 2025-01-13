@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Food Viewer - Approach 2 with Table</title>
+    <title>Grand Samosa</title>
 
     <!-- Three.js and Extras -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.144.0/build/three.min.js"></script>
@@ -96,7 +96,7 @@
             0.1,
             1000
         );
-        camera.position.set(0, 1.6, 3);
+        camera.position.set(0, 1.6, 2);
 
         // Orbit Controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -106,7 +106,6 @@
         controls.zoomSpeed = 0.5;
         controls.enablePan = false;
         controls.minPolarAngle = 0.1;
-        // controls.maxPolarAngle = (Math.PI / 2) - 0.2;
         controls.maxPolarAngle = (Math.PI / 2) + 0.2;
 
         /****************************************
@@ -125,7 +124,7 @@
          ****************************************/
         const loader = new THREE.GLTFLoader();
 
-        // Data for assets in each category
+        // Data for 3D assets in each category
         const assets = {
             starters: [
                 "assets/starters/plant.glb",
@@ -142,24 +141,44 @@
             ]
         };
 
-        let currentCategory = "starters";
+        // Data for corresponding PNG images in each category
+        // (Indices must match the 3D models above!)
+        const imageAssets = {
+            starters: [
+                "assets/food_description/mandu.png",
+                "assets/food_description/mandu.png"
+            ],
+            main: [
+                "assets/food_description/mandu.png",
+                "assets/food_description/mandu.png",
+                "assets/food_description/mandu.png"
+            ],
+            desserts: [
+                "assets/food_description/mandu.png",
+                "assets/food_description/mandu.png"
+            ]
+        };
+
+        let currentCategory = "main";
         let currentIndex = 0;
 
-        // Track all loaded "food" models
+        // Track all loaded "food" models (plus associated planes)
         let loadedModels = [];
 
-        // We'll track load requests with this counter
+        // We'll track load requests with this counter (to cancel out-of-date loads)
         let loadCounter = 0;
 
         // Table model reference
         let tableModel = null;
+
+        let z_offset = -0.5
 
         /**
          * Loads the table once, so it remains in the scene.
          * (We do NOT remove it in removeAllModels().)
          */
         function loadTableModel() {
-            const tablePath = "assets/table.glb"; // Path to your table model
+            const tablePath = "assets/other/table.glb"; // Path to your table model
 
             loader.load(
                 tablePath,
@@ -167,11 +186,14 @@
                     tableModel = gltf.scene;
                     scene.add(tableModel);
 
-                    // Scale the table uniformly to 0.1 for all axes
+                    // Scale the table uniformly
                     tableModel.scale.set(0.05, 0.025, 0.05);
 
-                    // Position the table so its top is at y = 0
-                    tableModel.position.set(0, -1.87125, 0); // Adjust y as needed based on the scaled model
+                    // let z_offset = -0.2
+                    // let z_offset = 0
+                    // Position the table so its top is at y = 0, for example
+                    tableModel.position.set(0, -1.87125 + z_offset, 0);
+                    tableModel.rotation.y = Math.PI / 2
                 },
                 undefined,
                 (error) => {
@@ -180,15 +202,14 @@
             );
         }
 
-
         /**
-         * Removes and disposes of any currently loaded "food" models,
+         * Removes and disposes of any currently loaded "food" models (and images),
          * but NOT the table.
          */
         function removeAllModels() {
-            loadedModels.forEach((model) => {
-                scene.remove(model);
-                model.traverse((child) => {
+            loadedModels.forEach((obj) => {
+                scene.remove(obj);
+                obj.traverse?.((child) => {
                     if (child.isMesh) {
                         child.geometry.dispose();
                         if (child.material.map) child.material.map.dispose();
@@ -200,18 +221,20 @@
         }
 
         /**
-         * Loads the current "food" model for the selected category & index.
+         * Loads the current "food" model for the selected category & index,
+         * plus a unique PNG image displayed on a plane.
          */
         function loadModel() {
-            const modelPath = assets[currentCategory][currentIndex];
-
             // This load's unique ID
             const thisLoadID = ++loadCounter;
 
-            // 1. Remove any previously loaded food models
+            // Remove old food models & planes
             removeAllModels();
 
-            // 2. Load the new model
+            // 1) Prepare the 3D model path
+            const modelPath = assets[currentCategory][currentIndex];
+
+            // 2) Load the 3D model
             loader.load(
                 modelPath,
                 (gltf) => {
@@ -225,29 +248,59 @@
                     scene.add(model);
                     loadedModels.push(model);
 
-                    // OPTIONAL: Scale the model
+                    // Scale the model
                     model.scale.set(5, 5, 5);
 
-                    // Center the food at (0, ??, 0)
-                    // Then lift it slightly above the table if needed
+                    // Center the food at (0, ??, 0), then lift it above the table
                     const box = new THREE.Box3().setFromObject(model);
                     const center = box.getCenter(new THREE.Vector3());
                     const size = box.getSize(new THREE.Vector3());
 
-                    // Reposition so center is at y=0 (just as a base)
-                    // Then we might raise it to ensure the model sits on the table
+                    // Reposition so center is at y=0
                     model.position.sub(center);
+                    // Raise it so it sits above y=0 (table top)
 
-                    // If the model's lowest point is below 0, you can lift it up:
-                    // For instance, to set the bounding box's "min.y" at +0.01 above the table.
-                    // By default, the bounding box extends equally around the center,
-                    // so half of `size.y` is below the center. We'll push it up that half:
-                    model.position.y += size.y / 2;
+                    model.position.y += (size.y / 2 + 0.02) + z_offset;
 
-                    // Optionally add a small offset to ensure no collision:
-                    model.position.y += 0.02;
 
-                    // Update OrbitControls target
+                    // 3) Now create a plane for the corresponding PNG image
+                    const imagePath = imageAssets[currentCategory][currentIndex];
+
+                    // Use TextureLoader to load the PNG
+                    const planeTexture = new THREE.TextureLoader().load(imagePath);
+                    const planeGeom = new THREE.PlaneGeometry(2, 1);  // Size of plane
+                    const planeMat = new THREE.MeshBasicMaterial({
+                        map: planeTexture,
+                        transparent: true, // If PNG has transparency
+                    });
+                    const plane = new THREE.Mesh(planeGeom, planeMat);
+
+                    // OPTIONAL: Scale the plane
+                    let sf = 0.5;
+                    plane.scale.set(sf, sf, sf);  // Make it bigger if needed
+
+                    // OPTIONAL: Rotate the plane to stand upright, etc.
+                    // By default, PlaneGeometry is oriented along the XY plane. 
+                    // We'll rotate it so the plane faces the camera's +Z direction:
+                    // plane.rotation.x = -Math.PI / 2;
+                    plane.rotation.x = -0.3;
+                    plane.rotation.z = 0;  // You can tweak these rotations
+
+                    // Position the plane near/above the food
+                    // Example: place it slightly behind or above the model
+                    // plane.position.set(
+                    //     model.position.x,
+                    //     model.position.y + size.y * 0.5 + 0.5, // above the top
+                    //     model.position.z - 1.0 // move it behind the model on Z
+                    // );
+
+                    plane.position.set(0.5, (0.6 + z_offset), 0);
+
+                    // Add the plane to the scene and track it
+                    scene.add(plane);
+                    loadedModels.push(plane);
+
+                    // 4) Update OrbitControls target
                     controls.target.set(0, 0, 0);
                     controls.update();
                 },
@@ -280,7 +333,8 @@
         }
 
         function prevModel() {
-            currentIndex = (currentIndex - 1 + assets[currentCategory].length) %
+            currentIndex =
+                (currentIndex - 1 + assets[currentCategory].length) %
                 assets[currentCategory].length;
             loadModel();
         }
@@ -291,7 +345,7 @@
         // 1) Load the table (persists through everything)
         loadTableModel();
 
-        // 2) Load initial food model
+        // 2) Load initial food model (and image)
         loadModel();
 
         // Handle window resize
