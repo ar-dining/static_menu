@@ -96,7 +96,7 @@
             0.1,
             1000
         );
-        camera.position.set(0, 0.5, 1.2);
+        camera.position.set(0, 0.5, 1.5);
 
         // Orbit Controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -296,7 +296,7 @@
                     //     model.position.z - 1.0 // move it behind the model on Z
                     // );
 
-                    plane.position.set(0.5, (0.6 + z_offset), 0);
+                    plane.position.set(0.0, (0.6 + z_offset), -0.4);
 
                     // Add the plane to the scene and track it
                     scene.add(plane);
