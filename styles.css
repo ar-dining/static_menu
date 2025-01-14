@@ -1,0 +1,39 @@
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+/* Canvas Styling */
+#sceneCanvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* UI Styling */
+#ui {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+button,
+select {
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+select {
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-align: center;
+    text-align-last: center;
+}
