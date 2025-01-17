@@ -162,10 +162,12 @@
 
         // Create scene
         const scene = new THREE.Scene();
+        const n = 2;
+        const randomIndex = Math.floor(Math.random() * n) + 1;
+        const randomPanoramaPath = `assets/panoramas/uzbek${randomIndex}.jpg`;
 
-        // Load a panoramic background (example)
         const textureLoader = new THREE.TextureLoader();
-        textureLoader.load('assets/panoramas/uzbek1.jpg', (texture) => {
+        textureLoader.load(randomPanoramaPath, (texture) => {
             texture.minFilter = THREE.LinearFilter;
             texture.magFilter = THREE.LinearFilter;
             texture.mapping = THREE.EquirectangularReflectionMapping;
@@ -192,7 +194,7 @@
         controls.zoomSpeed = 0.5;
         controls.enablePan = false;
         controls.minPolarAngle = 0.1;
-        controls.maxPolarAngle = (Math.PI / 2) + 0.2;
+        controls.maxPolarAngle = (Math.PI / 2) + 0.6;
 
         /****************************************
          *         2. Lighting (Optional)       *
