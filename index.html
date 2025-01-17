@@ -226,7 +226,8 @@
          * 3b. Table Model (loads once)         *
          ****************************************/
         function loadTableModel() {
-            const tablePath = "assets/other/table.glb";
+            const tablePath = "assets/tables/uzbek_blue.glb";
+            // const tablePath = "assets/tables/uzbek_red_nr.glb";
             loader.load(
                 tablePath,
                 (gltf) => {
@@ -234,9 +235,11 @@
                     scene.add(tableModel);
 
                     // Scale & position
-                    tableModel.scale.set(0.05, 0.025, 0.05);
-                    tableModel.position.set(0, -1.87125 + z_offset, 0);
-                    tableModel.rotation.y = Math.PI / 2;
+                    tableModel.scale.set(1.25, 1.25, 1.25);
+                    tableModel.position.set(0, -0.45 + z_offset, 0);
+                    // tableModel.rotation.y = -Math.PI;
+                    tableModel.rotation.y = 0;
+
                 },
                 undefined,
                 (error) => {
