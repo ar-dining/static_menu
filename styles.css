@@ -1,0 +1,74 @@
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+#sceneCanvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+#ui {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 20px;
+    background-color: #263550;
+    color: white;
+    border: 2px solid #263550;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #31456A;
+    border-color: #31456A;
+}
+
+select {
+    padding: 10px 10px;
+    /* Adjust padding for a consistent size */
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 20px;
+    /* Rounded corners */
+    background-color: #263550;
+    /* Dropdown background color */
+    color: #fff;
+    /* Text color */
+    border: 2px solid #263550;
+    /* Border color */
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    appearance: none;
+    /* Remove default OS-specific styles */
+    text-align: center;
+    text-align-last: center;
+}
+
+select:hover {
+    background-color: #31456A;
+    /* Hover background color */
+    border-color: #31456A;
+    /* Hover border color */
+}
+
+select:focus {
+    outline: none;
+    /* Remove focus outline */
+    /* border-color: #fff; */
+    /* Focus border color */
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+    /* Add a glow effect */
+}
