@@ -10,9 +10,9 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 
 // Create scene
 const scene = new THREE.Scene();
-const n = 2;
+const n = 6;
 const randomIndex = Math.floor(Math.random() * n) + 1;
-const randomPanoramaPath = `assets/panoramas/uzbek${randomIndex}.jpg`;
+const randomPanoramaPath = `assets/panoramas/${randomIndex}.jpg`;
 
 const textureLoader = new THREE.TextureLoader();
 textureLoader.load(randomPanoramaPath, (texture) => {
@@ -69,8 +69,8 @@ loader.setDRACOLoader(dracoLoader);
 // Data for 3D assets
 const assets = {
     starters: [
-        "assets/starters/plant.glb",
-        "assets/starters/random.glb"
+        "assets/starters/sushi.rapid.glb",
+        "assets/starters/veg_pastry.rapid.glb"
     ],
     main: [
         "assets/mains/noodles.glb",
@@ -78,16 +78,17 @@ const assets = {
         "assets/mains/beef_rice.glb"
     ],
     desserts: [
-        "assets/deserts/milk.glb",
-        "assets/deserts/Muffin.glb"
+        "assets/deserts/barfi.rapid.glb",
+        "assets/deserts/cream_roll.rapid.glb",
+        "assets/deserts/kalakand.rapid.glb"
     ]
 };
 
 // Data for corresponding PNG images
 const imageAssets = {
     starters: [
-        "assets/food_description/mandu.png",
-        "assets/food_description/mandu.png"
+        "assets/food_description/sushi.png",
+        "assets/food_description/veg_pastry.png"
     ],
     main: [
         "assets/food_description/noodles.png",
@@ -95,8 +96,9 @@ const imageAssets = {
         "assets/food_description/beef_rice.png"
     ],
     desserts: [
-        "assets/food_description/mandu.png",
-        "assets/food_description/mandu.png"
+        "assets/food_description/barfi.png",
+        "assets/food_description/cream_roll.png",
+        "assets/food_description/kalakand.png"
     ]
 };
 
